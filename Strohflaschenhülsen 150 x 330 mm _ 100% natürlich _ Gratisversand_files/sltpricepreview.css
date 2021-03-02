@@ -1,0 +1,9 @@
+#pricepreview {
+    float: left;
+    margin-top:1.5em;
+    margin-bottom:1em;
+    font-size:1.4em;
+}
+#pricepreview label {
+    font-weight:bold;
+}

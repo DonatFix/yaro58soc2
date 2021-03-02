@@ -1,0 +1,10 @@
+#cookieNote .modal-dialog {position:absolute;width:300px;bottom:15px;left:15px;top:15px;}
+#cookieNote .modal-content {bottom:0px;position:absolute;}
+#cookie-accordion {margin-bottom:0px;}
+#cookie-accordion input[type='checkbox'] {margin-right:15px;}
+#cookie-accordion .panel-collapse {max-height:160px;overflow-y:auto;overflow-x:hidden;}
+#cookie-accordion .panel.panel-default, #cookie-accordion .panel-body, #cookie-accordion .panel-heading {background:none;border:none;box-shadow: none;}
+#cookie-accordion .panel-title > a {display:block;outline:0;}
+#cookie-accordion label {text-indent:-29px;margin-left:29px;margin-right:10px;}
+#cookie-accordion label:hover {text-decoration:underline;cursor:pointer;}
+#cookie-accordion ul.list-unstyled {margin-bottom:0px;padding-top:0px;padding-bottom:0px;}

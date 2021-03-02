@@ -1,0 +1,180 @@
+function showPricePreview() {
+    var preview = $("#pricepreview");
+    if (preview.length) {
+        preview.html("");
+        if ($("#pricepreviewdata").length) {
+            var data = $("#pricepreviewdata").val();
+            if (data != "") {
+                var vprices = data.split("#");
+                var insertedAmount = $('#amountToBasket').val();
+                var insertedAmount = isNaN(parseInt(insertedAmount)) ? 0 : parseInt(insertedAmount)
+                if (insertedAmount > 0) {
+                    var lastprice = null;
+                    var lastamount = null;
+                    for (var i = 0; i < vprices.length; i++) {
+                        var vpricedata = vprices[i].split("|");
+                        var amount = vpricedata[0];
+                        amount = parseInt(amount);
+                        var price = vpricedata[1];
+                        price = parseFloat(price);
+                        if (insertedAmount >= amount && (lastamount == null || lastamount < amount)) {
+                            lastprice = price;
+                            lastamount = amount;
+                        }
+                    }
+                    if (lastprice != null) {
+                        var previewprice = lastprice;
+
+                        //complete price with selectlist surchare
+                        var selectlistboxes = $('.selectbox', '#productSelections');
+                        if( selectlistboxes.length > 0 ) {
+
+                            var assigned_rules = [];
+
+                            //a lot of selectlists are possible
+                            $.each(selectlistboxes, function( index, $selectBox ) {
+
+                                //what is selected?
+                                var selectlist_currentselected = $('input[type="hidden"]', $selectBox);
+                                if( selectlist_currentselected.length == 1) {
+                                    var selectlist_name =  selectlist_currentselected.attr("name");
+                                    var selectlist_value = selectlist_currentselected.val();
+                                    //build hash to get price for it
+                                    var selectlist_pricehash = 'pricepreviewseldata-' + selectlist_name + '[' + selectlist_value + ']';
+
+                                    var selectbox_priceinput = $('input[name="' + selectlist_pricehash + '"]');
+                                    if( selectbox_priceinput.length == 1 ) {
+
+                                        var selectbox_priceinput_val = selectbox_priceinput.val();
+                                        assigned_rules.push(selectbox_priceinput_val);
+
+                                        previewprice = applyPricePreviewRule(previewprice, selectbox_priceinput_val);
+                                    }
+                                }
+                            });
+
+                            var smallest_value = updateScalePricesPreview(assigned_rules);
+                            updatePriceFromPreview(smallest_value);
+                        }
+                        previewprice = previewprice * insertedAmount;
+
+                        previewprice = previewprice.toFixed(2);
+                        previewprice = previewprice.replace(/\./, ",");
+                        var previewtext = sprintf( sltpdvolumediscounttext, previewprice);
+                        preview.html(previewtext);
+                    }
+                }
+            }
+        }
+    }
+}
+
+function applyPricePreviewRule(priceValue, rule) {
+
+    var pattern = /(p){1}/i;
+    var ispercent = rule.match(pattern);
+    if( ispercent ) {
+
+        rule = rule.replace("p", "");
+        rule = parseFloat(rule);
+
+        var pricetoadd = (rule / 100) * priceValue;
+        priceValue = priceValue + parseFloat(pricetoadd.toFixed(2));
+    }
+    else {
+        priceValue = priceValue + parseFloat(rule);
+    }
+    return priceValue;
+}
+
+function updatePriceFromPreview(smallest_value) {
+
+    if( smallest_value ) {
+        smallest_value = smallest_value.replace(/\./, ",");
+        var from_price_text = $('#productPrice .price').text();
+        if( from_price_text ) {
+            var from_price_text_split = from_price_text.split(" ");
+            if( from_price_text_split.length == 2 ) {
+                $('#productPrice .price').text(from_price_text_split[0] + " " + smallest_value);
+            }
+        }
+    }
+}
+
+function updateScalePricesPreview( assigned_rules ) {
+
+    var smallest_value = false; //collect smallest price for -price from- preview
+
+    $('#priceinfo span[data-original]').each(function(index, item){
+
+        var original_price = $(item).data('original');
+        original_price = original_price.replace(/,/, "\.");
+        original_price = parseFloat(original_price);
+
+        if( original_price > 0) {
+            $.each(assigned_rules, function( index, rule ) {
+                original_price = applyPricePreviewRule(original_price, rule);
+            });
+        }
+        original_price = original_price.toFixed(2);
+
+        if( smallest_value == false || smallest_value > original_price ) {
+            smallest_value = original_price;
+        }
+
+        original_price = original_price.replace(/\./, ",");
+        $(item).text(original_price);
+    });
+
+    return smallest_value;
+}
+
+$( document ).ready(function() {
+
+    var $oSelectionLists = $( '.selectorsBox', '#content' );
+    if ( $oSelectionLists.length ) {
+        var dropdowns = $oSelectionLists.find( '.dropdown-menu li' );
+        dropdowns.unbind( "click" );
+    }
+
+    function sprintf() {
+        if( sprintf.arguments.length < 2 ) {
+            return;
+        }
+
+        var data = sprintf.arguments[ 0 ];
+
+        for( var k=1; k<sprintf.arguments.length; ++k ) {
+
+            switch( typeof( sprintf.arguments[ k ] ) )
+            {
+                case 'string':
+                    data = data.replace( /%s/, sprintf.arguments[ k ] );
+                    break;
+                case 'number':
+                    data = data.replace( /%d/, sprintf.arguments[ k ] );
+                    break;
+                case 'boolean':
+                    data = data.replace( /%b/, sprintf.arguments[ k ] ? 'true' : 'false' );
+                    break;
+                default:
+                    /// function | object | undefined
+                    break;
+            }
+        }
+        return( data );
+    }
+
+    $("#content").on("keyup", "#amountToBasket", function () {
+        showPricePreview();
+    });
+
+    $( "#content" ).on( "click", ".selectorsBox .dropdown-menu li", function() {
+        showPricePreview();
+        return true;
+    });
+
+    if ($("#pricepreview").length) {
+        showPricePreview();
+    }
+});

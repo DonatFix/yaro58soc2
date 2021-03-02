@@ -1,0 +1,40 @@
+function initTooltips() {
+    if (typeof $.fn.tooltip.noConflict === "function") {
+        var bootstrapTooltip = $.fn.tooltip.noConflict();
+        $.fn.bootstrapTt = bootstrapTooltip;
+    }
+
+    $(document).tooltip({
+        items: ".sltglossarytooltip",
+        position: { my: "left+15 center", at: "right center" },
+	    content: function() {
+            var element = $(this);
+            if (element.is(".sltglossarytooltip")) {
+                var tid = element.attr("id");
+                var tooltipHtml;
+                $.ajax( shopuri, {
+                    async: false,
+                    type: 'post',
+                    dataType:'html',
+                    data: { id : tid, cl : 'sltglossary', fnc : 'gettooltiphtml' },
+                    success: function(data) {
+                        tooltipHtml = data;
+                    },
+                    error: function(data) {
+                        tooltipHtml = "Tooltip konnte nicht geladen werden.";
+                    }
+                });
+
+                // me: check image-size
+                $('body').append('<div class="dummyBox">'+tooltipHtml+'</div>');
+                $('.dummyBox > img:eq(0)').css('display: block;');
+                var imgWidth = $('.dummyBox > img:eq(0)').width();
+                if( imgWidth > 300 )
+                    tooltipHtml = '<div style="width:'+ imgWidth +'px;">'+tooltipHtml+'</div>';
+                $('body .dummyBox').remove();
+
+                return tooltipHtml;
+            }
+	    }
+	});
+}

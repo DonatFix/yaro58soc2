@@ -1,0 +1,423 @@
+var sidebarBubbleTimeout = null;
+
+function updbasketitem(cartitemno) {
+	if (cartitemno) {
+		var cartitem = $('#table_cartItem_' + cartitemno);
+		if (cartitem.length ) {
+            var nextamount = $('input[name="nextamount"]', cartitem).val();
+            console.log("nextamount = " + nextamount);
+			if (nextamount > 0 ) {
+				$('#am_' + cartitemno, cartitem).val(nextamount);
+				$('.acceptedproposal', cartitem).val(1);
+				$('#basketUpdate').click();
+			}
+		}
+	}
+	return false;
+}
+
+$("#cartonsearch-widget-form-cc").submit(function(event) {
+	$("#cartoncalculator-error").hide();
+	var length = $("#iLengthParam").val();
+	$("#ccLength").val(length);
+	var width = $("#iWidthParam").val();
+	$("#ccWidth").val(width);
+	var height = $("#iHeightParam").val();
+	$("#ccHeight").val(height);
+
+	var errormsg = checkCCInput();
+	if( errormsg.length > 0 ) {
+		$("#cartoncalculator-error").html(errormsg).show();
+		event.preventDefault();
+	}
+	return true;
+});
+
+function checkCCInput() {
+	var fefco = $("#ccFefco").val();
+	var quality = $("#ccQuality").val();
+	var quantity = $("#ccQuantity").val();
+	var length = $("#ccLength").val();
+	var width = $("#ccWidth").val();
+	var height = $("#ccHeight").val();
+
+	var errormsg = "";
+	$.ajax( shopuri, {
+		async: false,
+		type: 'post',
+	    dataType:'json',
+		data: { ccFefco : fefco, ccQuality : quality, ccQuantity : quantity, ccLength : length, ccWidth : width, ccHeight : height,  cl : 'sltcartoncalculator', fnc : 'validateInput' },
+		success: function(data) {
+			if (data.success == 0) {
+                            errormsg = data.errormsg;
+			}
+		},
+		error: function(data) {
+                    errormsg = "Kalkulation online leider nicht möglich. Bitte kontaktieren Sie uns über das Formular Angebotsanfrage.";
+		}
+	});
+        return errormsg;
+}
+
+$("#cartonsearch-widget-form-cs").submit(function(event) {
+	//validate fields before send
+	$("#cartonsearch-error").hide();
+	err = false;
+	var length = $("#iLengthParam").val();
+	if( length && checkNumber(length, csFieldsetRangeFrom, csFieldsetRangeTo) == false) {
+		err = true;
+	}
+	var width = $("#iWidthParam").val();
+	if( err == false && width && checkNumber(width, csFieldsetRangeFrom, csFieldsetRangeTo) == false) {
+		err = true;
+	}
+	var height = $("#iHeightParam").val();
+	if( err == false && height && checkNumber(height, csFieldsetRangeFrom, csFieldsetRangeTo) == false) {
+		err = true;
+	}
+	if (err == true) {
+		event.preventDefault();
+		$("#cartonsearch-error").show();
+	}
+	return true;
+});
+
+function checkNumber(value, min, max) {
+	if(!value || value.length == 0)  {
+		return false;
+	}
+	var value = isNaN(parseInt(value)) ? null : parseInt(value);
+	if( value == null ) {
+		return false;
+	}
+	if( min && value < min ) {
+		return false;
+	}
+	if( max && value > max ) {
+		return false;
+	}
+	return true;
+}
+
+$("#ccFefco,#ccQuantity,#ccQuality").change(function() {
+	var fefco = $("#ccFefco").val();
+	var quality = $("#ccQuality").val();
+	var quantity = $("#ccQuantity").val();
+	var length = $("#ccLength").val();
+	var width = $("#ccWidth").val();
+	var height = $("#ccHeight").val();
+
+	var executer = $(this).attr('id');
+
+	if( executer == "ccFefco" ) { //change fefco image
+		var previewImage = $("#cc_preview_image");
+		if( previewImage ) {
+			if( fefco.length > 0 ) {
+				previewImage.attr("src", ccimagepath + "Fefco_" + fefco + "w.jpg");
+			}
+			else {
+				previewImage.attr("src", ccimagedefaulturl);
+			}
+		}
+	}
+
+	$.ajax( shopuri, {
+		async: false,
+		type: 'post',
+	    dataType:'html',
+		data: { executer : executer, ccFefco : fefco, ccQuality : quality, ccQuantity : quantity, ccLength : length, ccWidth : width, ccHeight : height,  cl : 'sltcartoncalculator', fnc : 'getAjaxRestrictions' },
+		success: function(data) {
+			var hcontainer = data.split("#");
+			if( hcontainer[0] != "")
+				$("#ccFefco").html(hcontainer[0]);
+			if( hcontainer[1] != "")
+				$("#ccQuantity").html(hcontainer[1]);
+			if( hcontainer[2] != "")
+				$("#ccQuality").html(hcontainer[2]);
+			//$.selectToListing.init();
+		},
+		error: function(data) {
+			alert("call failed");
+		}
+	});
+});
+
+if( $("#ccFefco").length ) {
+	$("#ccFefco").trigger('change');
+}
+
+$("#newsBox span.newsEntry").tooltip({
+    bodyHandler: function() {
+	    var tid = $(this).attr("id");
+	    var tooltipHtml;
+		$.ajax( shopuri, {
+			async: false,
+			type: 'post',
+		    dataType:'html',
+			data: { id : tid, cl : 'mo_extended_news__details', fnc : 'getPopupHtml' },
+			success: function(data) {
+				tooltipHtml = data;
+			},
+			error: function(data) {
+				tooltipHtml = "News konnte nicht geladen werden.";
+			}
+		});
+		return tooltipHtml;
+    },
+    showURL: false
+});
+
+function sprintf() {
+      if( sprintf.arguments.length < 2 ) {
+            return;
+      }
+
+      var data = sprintf.arguments[ 0 ];
+
+      for( var k=1; k<sprintf.arguments.length; ++k ) {
+
+      switch( typeof( sprintf.arguments[ k ] ) )
+        {
+        case 'string':
+              data = data.replace( /%s/, sprintf.arguments[ k ] );
+              break;
+         case 'number':
+               data = data.replace( /%d/, sprintf.arguments[ k ] );
+               break;
+         case 'boolean':
+               data = data.replace( /%b/, sprintf.arguments[ k ] ? 'true' : 'false' );
+               break;
+         default:
+         /// function | object | undefined
+         break;
+        }
+      }
+      return( data );
+}
+
+
+
+/***
+ * Created by move:elevator
+ * Plugin SelectToListing
+// **/
+//( function( $ ) {
+//
+//    $(document).ready(function () {
+//        $.selectToListing.init();
+//    });
+//
+//    //Extends jQuery's namespace
+//    $.selectToListing = {};
+//
+//    //Default settings
+//    $.selectToListing.options = {
+//        listborder: 0,
+//        paddingRight: 28
+//    };
+
+    //$.selectToListing.init = function(){
+    //    $('.selectList .list a, .selectList .button a').unbind('click');
+    //    $('.selectList').remove();
+    //
+    //    $('select').each(function(){
+    //
+    //        var sWidth = $(this).width();
+    //        if( !sWidth ) sWidth = 172;
+    //        else if( sWidth < 30 ) sWidth = 30;
+    //        var sWidthPadding = sWidth+$.selectToListing.options.paddingRight;
+    //        var sWidthBorders = sWidthPadding-($.selectToListing.options.listborder*2);
+    //        var linkClass = '';
+    //
+    //        $(this)
+    //            .after('<div class="selectList" style="width: '+ sWidthPadding +'px;"><div class="button"></div><ul class="list" style="width: '+ sWidthBorders +'px;"></ul></div>')
+    //            .css('display','none');
+    //
+    //        for( var i=0; i<$(this).find('option').length;i++ )
+    //        {
+    //            if( $(this).find('option:eq('+ i +')').attr('selected') || i == 0 ) {
+    //            	ftext = $(this).find('option:eq('+ i +')').text().replace("[umbr]","<br />");
+    //            	$(this).next().find('.button').html( '<a href="javascript:;">'+ ftext +'</a>' );
+    //            }
+    //
+    //            if( $(this).hasClass('fefco') )
+    //            {
+    //                linkClass = "fefco fefco-"+$(this).find('option:eq('+ i +')').attr('value');
+    //            }
+    //            else
+    //                linkClass = '';
+    //
+    //            fieldtext = $(this).find('option:eq('+ i +')').text();
+    //            fieldtext = fieldtext.replace("[umbr]","<br />");
+    //
+    //            if( $(this).find('option:eq('+ i +')').text() != "bitte w&auml;hlen" && ($(this).find('option:eq('+ i +')').attr('value') || $(this).find('option:eq('+ i +')').text() == "-" ) )
+    //            $(this).next().find('.list').append( '<li><a href="javascript:;" rel="'+ i +'" class="'+ linkClass +'">'+ fieldtext +'</a></li>' );
+    //        }
+    //
+    //    });
+    //    $('.selectList .list a').bind('click',function(){
+    //        $(this).parent().parent().parent().prev().find('option:eq('+ $(this).attr('rel') +')').attr('selected',true);
+    //        $(this).parent().parent().prev().find('a').html( $(this).html() );
+    //        $('.selectList .list').trigger('mouseleave');
+    //        $(this).parent().parent().parent().parent().find('input[type="submit"]').trigger('click');
+    //        $(this).parent().parent().parent().prev().change();
+    //    });
+    //
+    //    $('.selectList .button a').bind('click',function(){
+    //        $(this).parent().parent().find('.list').toggle();
+    //        if( $(this).parent().parent().hasClass('active') )
+    //            $(this).parent().parent().removeClass('active');
+    //            $(this).parent().parent().removeClass('active');
+    //        else
+    //            $(this).parent().parent().addClass('active');
+    //    });
+    //    $('.selectList').bind('mouseleave',function(){
+    //        $(this).find('.list').css('display','none');
+    //        $(this).removeClass('active');
+    //    });
+    //
+    //}
+
+//} )( jQuery );
+
+/***
+ * Created by move:elevator
+ * HelpTeaser
+**/
+( function( $ ) {
+
+    $(document).ready(function () {
+
+    	$('#content').on("submit", ".force-active-selection", function (e) {
+
+        	var formIsValid = true;
+
+        	var $fields = $('.selectbox-force-selection input[type="hidden"]').filter(function( index ) {
+                return $(this)[0].hasAttribute("required") && $(this).attr["required"] != "";
+            });
+
+        	if( $fields.length > 0 ) {
+                $.each( $fields, function() {
+               		var fieldValue = $(this).val();
+					if( fieldValue == "") {
+                        formIsValid = false;
+						var nextElement = $(this).prev();
+						if( nextElement.hasClass("help-block")) {
+                            nextElement.show();
+						}
+						else {
+                            $(this).before('<div class="help-block"><ul class="list-unstyled text-danger" role="alert"><li>Bitte Wert angeben.</li></ul></div>');
+						}
+					}
+                });
+			}
+
+			if(!formIsValid) {
+                e.preventDefault();
+			}
+			return true;
+        });
+
+		$('.sltsidebar-button').click(function() {
+
+			var $thisSidebarElement = $(this).parents('.sltsidebar-element');
+			var buttonIsActive = $thisSidebarElement.hasClass("active");
+			if( buttonIsActive ) {
+				closeSidebar();
+				return false;
+			}
+
+			$('#sltsidebar .sltsidebar-element').removeClass("active");
+			$('#sltsidebar').addClass("active");
+			$thisSidebarElement.addClass("active");
+
+			setSidebarContentNextToActiveSidebarButton();
+
+			if( sidebarBubbleTimeout ) {
+				clearTimeout(sidebarBubbleTimeout);
+			}
+
+			var $articleSlider = $('.articleslider', $thisSidebarElement);
+			if( $articleSlider.length > 0 ) {
+
+				//slider resizing by height
+				var sidebar = $('#sltsidebar');
+
+				var slideHeight = 200;
+				var marginHeight = 200;
+				var reducesHeight = 0;
+				if( $('.sltsidebar-content-articleslidercontent', $thisSidebarElement).length > 0 ) {
+					reducesHeight = $('.sltsidebar-content-articleslidercontent', $thisSidebarElement).height();
+				}
+
+				var maxItems = ( sidebar.height() - reducesHeight - marginHeight ) / slideHeight;
+				maxItems = Math.round(maxItems);
+				if( maxItems < 1 ) {
+					maxItems = 1;
+				}
+				var maxItemsAllowed = $articleSlider.data("maxitems");
+				if( maxItemsAllowed && maxItems > maxItemsAllowed) {
+					maxItems = maxItemsAllowed;
+				}
+
+				$('.articleslider .slick').slick("slickSetOption", "slidesToShow", maxItems);
+				$('.articleslider .slick').slick("refresh");
+			}
+
+			return false;
+		});
+
+		if( $('#sltsidebar .emphasize').length > 0) {
+			sidebarBubbleTimeout = setTimeout(function() {
+				$( "#sltsidebar .emphasize" ).effect( "shake" );
+			}, 4000)
+		}
+
+		//cancel close sidebar
+		$(".sltsidebar-content").click(function (e) {
+			return false;
+		});
+
+		$(".sltsidebar-content").on("click", "a", function (e) {
+			e.stopPropagation();
+			return true;
+		});
+
+		//close sidebar
+		$("body").click(function (e) {
+			closeSidebar();
+			return true;
+		});
+
+		function closeSidebar() {
+			$('#sltsidebar .sltsidebar-element').removeClass("active");
+			$('#sltsidebar').removeClass("active");
+		}
+
+		function setSidebarContentNextToActiveSidebarButton() {
+
+			var $contentContainer = $("#sltsidebar .sltsidebar-element.active .sltsidebar-content.sltsidebar-content-has-customsize");
+			if( $contentContainer.length == 1 ) {
+				$sidebarElement = $('#sltsidebar .sltsidebar-element.active');
+				var relativeY = $sidebarElement.offset().top - $('#sltsidebar').offset().top;
+				$contentContainer.css("top", relativeY + "px");
+			}
+		}
+
+		$( window ).resize(function() {
+			setSidebarContentNextToActiveSidebarButton();
+		});
+    });
+
+	$('#content').on("click", '.force-active-selection a', function (e) {
+		var selectionId = $(this).data("selection-id");
+		if( selectionId || selectionId == "0" ) {
+			var wrapper = $(this).parents('.dropdown-wrapper');
+			if( wrapper.length ) {
+				$(".help-block", wrapper).remove();
+			}
+		}
+		return true;
+	});
+
+} )( jQuery );
